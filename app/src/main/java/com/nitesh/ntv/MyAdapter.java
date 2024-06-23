@@ -15,9 +15,9 @@ import com.bumptech.glide.Glide;
 import java.util.List;
 public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
-    private List<Channel> data;
-    private LayoutInflater inflater;
-    private OnItemClickListener listener;
+    private final List<Channel> data;
+    private final LayoutInflater inflater;
+    private final OnItemClickListener listener;
 
     public MyAdapter(List<Channel> data, Context context, OnItemClickListener listener) {
         this.data = data;
@@ -50,8 +50,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
     public class MyViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        private ImageView channelImage;
-        private TextView channelName;
+        private final ImageView channelImage;
+        private final TextView channelName;
 
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -62,7 +62,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
         @Override
         public void onClick(View view) {
-            int position = getAdapterPosition();
+            int position =  getBindingAdapterPosition();
             if (position != RecyclerView.NO_POSITION) {
                 Channel channel = data.get(position);
                 if (listener != null) {

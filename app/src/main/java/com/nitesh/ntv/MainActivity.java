@@ -176,6 +176,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
     public void onItemClick(Channel channel) {
         try {
             String url = channel.getUrl();
+            //Toast.makeText(MainActivity.this, url, Toast.LENGTH_LONG).show();
             DataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
 
             // Create a MediaItem with the given URL
@@ -194,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
             if (wakeLock != null) {
                 wakeLock.acquire(10*60*1000L /*10 minutes*/);
 
-                Toast.makeText(MainActivity.this, "WakeLock Started", Toast.LENGTH_LONG).show();
+
             }
             player.setPlayWhenReady(true);
 
@@ -204,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
                     if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
                         if (wakeLock != null && wakeLock.isHeld()) {
                             wakeLock.release();
-                            Toast.makeText(MainActivity.this, "Releasing WakeLock", Toast.LENGTH_LONG).show();
+
                         }
                     }
                 }
@@ -223,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
     private void releaseWakeLock() {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
-            Toast.makeText(this, "Releasing Wakelock", Toast.LENGTH_SHORT).show();
+
         }
     }
 
@@ -242,7 +243,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
         }
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
-            Toast.makeText(this, "Releasing Wakelock", Toast.LENGTH_SHORT).show();
+
         }
     }
 
