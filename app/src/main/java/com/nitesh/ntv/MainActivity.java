@@ -1,17 +1,24 @@
 package com.nitesh.ntv;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Toast;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.exoplayer.source.MediaSource;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,7 +39,6 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
-import androidx.media3.exoplayer.hls.HlsMediaSource;
 import androidx.media3.ui.PlayerView;
 
 
@@ -42,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
     private List<Channel> data;
     private PlayerView playerView;
     private ExoPlayer player;
-
+    private PowerManager.WakeLock wakeLock;
 
     public void onFullscreenClicked(View view) {
         int orientation = getResources().getConfiguration().orientation;
@@ -75,7 +81,11 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
             findViewById(R.id.recycler_view).setVisibility(View.VISIBLE);
             showSystemUI();
         }
+        // Acquire wake lock to keep screen on during playback
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp:AudioPlayback");
     }
+
     private int uiOptions;
     private void hideSystemUI() {
         View decorView = getWindow().getDecorView();
@@ -160,27 +170,80 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
         queue.add(request);
     }
 
+
     @OptIn(markerClass = UnstableApi.class)
     @Override
     public void onItemClick(Channel channel) {
         try {
+            String url = channel.getUrl();
             DataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
-            HlsMediaSource hlsMediaSource =
-                    new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(channel.getUrl()));
-            player.setMediaSource(hlsMediaSource);
+
+            // Create a MediaItem with the given URL
+            MediaItem mediaItem = new MediaItem.Builder()
+                    .setUri(url)
+                    .build();
+
+            // Use DefaultMediaSourceFactory to create a MediaSource
+            MediaSource mediaSource = new DefaultMediaSourceFactory(dataSourceFactory)
+                    .createMediaSource(mediaItem);
+
+            player.setMediaSource(mediaSource);
             player.prepare();
-            player.play();
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            // Acquire wake lock before starting playback
+            if (wakeLock != null) {
+                wakeLock.acquire(10*60*1000L /*10 minutes*/);
+
+                Toast.makeText(MainActivity.this, "WakeLock Started", Toast.LENGTH_LONG).show();
+            }
+            player.setPlayWhenReady(true);
+
+            player.addListener(new Player.Listener() {
+                @Override
+                public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+                    if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
+                        if (wakeLock != null && wakeLock.isHeld()) {
+                            wakeLock.release();
+                            Toast.makeText(MainActivity.this, "Releasing WakeLock", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+                @Override
+                public void onPlayerError(PlaybackException error) {
+                    Log.e(TAG, "Player Error: " + error.getMessage());
+                    Toast.makeText(MainActivity.this, "Error playing video: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                }
+
+            });
         } catch (Exception e) {
             Log.e(TAG, "Error initializing ExoPlayer: ", e);
             Toast.makeText(this, "Error playing video", Toast.LENGTH_SHORT).show();
         }
     }
+    private void releaseWakeLock() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+            Toast.makeText(this, "Releasing Wakelock", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        releaseWakeLock();
+
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Release ExoPlayer when activity is destroyed
-        player.release();
+        if (player != null) {
+            player.release();
+        }
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+            Toast.makeText(this, "Releasing Wakelock", Toast.LENGTH_SHORT).show();
+        }
     }
 
 
