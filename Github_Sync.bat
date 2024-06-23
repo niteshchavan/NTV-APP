@@ -1,7 +1,7 @@
 @echo off
 git status
 git add .
-git commit -m "descriptive message"
+git commit -a
 git push
 
 pause
