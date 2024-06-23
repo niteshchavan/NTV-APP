@@ -1,7 +1,7 @@
 @echo off
 git status
 git add .
-git commit -a
+git commit -m Final
 git push
 
 pause
