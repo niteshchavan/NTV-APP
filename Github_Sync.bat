@@ -2,6 +2,6 @@
 git status
 git add .
 git commit -m Final
-git push
+git push -f
 
 pause
