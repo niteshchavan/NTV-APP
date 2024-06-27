@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".YoutubeDLP">
+
+    <WebView
+        android:id="@+id/webview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/player_view"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginBottom="45dp">
+
+    </WebView>
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        app:resize_mode="fill"
+        android:layout_width="match_parent"
+        android:layout_height="210dp"
+        app:keep_content_on_player_reset="true"
+        app:use_controller="true"
+        app:hide_on_touch="true"
+        app:show_buffering="always"
+        android:layout_marginTop="42dp">
+
+        <ImageButton
+            android:id="@+id/fullscreen"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|end"
+            android:layout_marginEnd="10dp"
+            android:backgroundTint="@android:color/transparent"
+            android:contentDescription="TODO"
+            android:onClick="onFullscreenClicked"
+            android:tintMode="src_in"
+            app:srcCompat="@drawable/fullscreen_icon"
+            tools:ignore="ImageContrastCheck" />
+    </androidx.media3.ui.PlayerView>
+
+
+    <ImageButton
+        android:id="@+id/btnStartStream"
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="Play"
+        android:onClick="btnStartStream"
+        android:tintMode="src_in"
+        android:layout_marginEnd="160dp"
+        app:srcCompat="@drawable/ic_play" />
+
+    <ImageButton
+        android:id="@+id/btnUpdate"
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="Update"
+        android:onClick="btnUpdate"
+        android:tintMode="src_in"
+        android:layout_marginEnd="320dp"
+        app:srcCompat="@drawable/update" />
+
+    <ImageButton
+        android:id="@+id/btnStartDownload"
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="Download"
+        android:onClick="btnStartDownload"
+        android:tintMode="src_in"
+        android:layout_marginEnd="250dp"
+        app:srcCompat="@drawable/downloading" />
+
+    <ImageButton
+        android:id="@+id/btnStopDownload"
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="Cancel"
+        android:onClick="btnStopDownload"
+        android:tintMode="src_in"
+        android:layout_marginEnd="250dp"
+        app:srcCompat="@drawable/cancel" />
+
+    <ImageButton
+        android:id="@+id/showplayer"
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="show_player"
+        android:onClick="showplayer"
+        android:tintMode="src_in"
+        android:layout_marginEnd="80dp"
+        app:srcCompat="@drawable/videoshow" />
+
+    <ImageButton
+        android:id="@+id/hideplayer"
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="hide_player"
+        android:onClick="hideplayer"
+        android:tintMode="src_in"
+        android:layout_marginEnd="80dp"
+        app:srcCompat="@drawable/videohide" />
+
+    <ImageButton
+        android:id="@+id/hd_play"
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="hd_play"
+        android:onClick="hd_play"
+        android:tintMode="src_in"
+        android:layout_marginEnd="10dp"
+        app:srcCompat="@drawable/hd" />
+
+
+
+    <ProgressBar
+        android:id="@+id/dw_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        tools:visibility = "visible"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="245dp"
+
+        />
+    <ProgressBar
+        android:id="@+id/pb_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        tools:visibility = "visible"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="155dp"
+
+        />
+</RelativeLayout>

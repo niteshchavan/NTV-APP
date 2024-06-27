@@ -1,7 +1,10 @@
 package com.nitesh.ntv;
 
+import static androidx.core.content.ContextCompat.startActivity;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -11,6 +14,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Toast;
+
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -136,6 +141,19 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
         recyclerView.addItemDecoration(dividerItemDecoration);
         // Fetch data from URL
         fetchData();
+
+        // Set up back button handling
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
+            @Override
+            public void handleOnBackPressed() {
+                // Navigate back to IntroActivity
+                Intent intent = new Intent(MainActivity.this, IntroActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish();
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
     private void fetchData() {
@@ -246,6 +264,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
 
         }
     }
+
 
 
 }
