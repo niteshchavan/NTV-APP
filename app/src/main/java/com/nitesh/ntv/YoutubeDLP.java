@@ -56,6 +56,9 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
+import android.media.session.MediaSession;
+import android.media.session.PlaybackState;
+
 public class YoutubeDLP extends AppCompatActivity {
 
     private boolean updating = false;
@@ -76,9 +79,10 @@ public class YoutubeDLP extends AppCompatActivity {
     private ProgressBar dwLoading;
     private boolean downloading = false;
     private final String processId = "MyDlProcess";
-
-
-
+    private int uiOptions;
+    private static MediaSession mediaSession;
+    PlaybackState.Builder stateBuilder;
+    private static final String LOG_TAG = "YoutubeDLP";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -122,6 +126,16 @@ public class YoutubeDLP extends AppCompatActivity {
         playerView.setVisibility(View.GONE);
 
         webView.getSettings().setJavaScriptEnabled(true);
+
+        getyoutube();
+        handleIncomingLink();
+        backbuttonpress();
+        updatebtn();
+        mediasessions();
+    }
+
+    private void getyoutube(){
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -146,12 +160,9 @@ public class YoutubeDLP extends AppCompatActivity {
         });
         webView.loadUrl("https://m.youtube.com/");
 
-        BtnUpdate.setOnClickListener(v -> updateYoutubeDL());
-        BtnStartStream.setOnClickListener(v -> {
-            playerView.setVisibility(View.VISIBLE);
-            startStream(matchedUrl);
-        });
+    }
 
+    private void backbuttonpress(){
         // Set up back button handling
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
 
@@ -174,22 +185,14 @@ public class YoutubeDLP extends AppCompatActivity {
             }
         };
         getOnBackPressedDispatcher().addCallback(this, callback);
-
-        Intent intent = getIntent();
-        if (Intent.ACTION_VIEW.equals(intent.getAction())) {
-            Uri uri = intent.getData();
-            if (uri != null) {
-                handleIncomingLink(uri);
-            }
-        }
-
     }
-    private void handleIncomingLink(Uri uri) {
-        // Extract the full URI as a string
-        String fullUrl = uri.toString();
-        playerView.setVisibility(View.VISIBLE);
-        startStream(fullUrl);
 
+    private void updatebtn() {
+        BtnUpdate.setOnClickListener(v -> updateYoutubeDL());
+        BtnStartStream.setOnClickListener(v -> {
+            playerView.setVisibility(View.VISIBLE);
+            startStream(matchedUrl);
+        });
     }
 
     private void updateYoutubeDL() {
@@ -224,6 +227,24 @@ public class YoutubeDLP extends AppCompatActivity {
         compositeDisposable.add(disposable);
     }
 
+    private void setupVideoView(String videoUrl) {
+        playerView.setPlayer(player);
+        MediaItem mediaItem = MediaItem.fromUri(videoUrl);
+
+
+        player.setMediaItem(mediaItem);
+        player.prepare();
+        player.setPlayWhenReady(true);
+
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
+                updatePlayerState(playWhenReady);
+            }
+        });
+        updatePlayerState(true);
+    }
+
     private void startStream(String url) {
         //Log.d(TAG, "startStream " + url);
 
@@ -250,6 +271,13 @@ public class YoutubeDLP extends AppCompatActivity {
                 });
         compositeDisposable.add(disposable);
     }
+
+    public void hd_play(View view) {
+        HdStream(matchedUrl);
+        Toast.makeText(YoutubeDLP.this, "Playing HD", Toast.LENGTH_LONG).show();
+        playerView.setVisibility(View.VISIBLE);
+    }
+
     private void HdStream(String url) {
 
         pbLoading.setVisibility(View.VISIBLE);
@@ -278,28 +306,6 @@ public class YoutubeDLP extends AppCompatActivity {
         compositeDisposable.add(disposable);
     }
 
-    private void setupVideoView(String videoUrl) {
-        playerView.setPlayer(player);
-        MediaItem mediaItem = MediaItem.fromUri(videoUrl);
-
-
-        player.setMediaItem(mediaItem);
-        player.prepare();
-        player.setPlayWhenReady(true);
-
-        player.addListener(new Player.Listener() {
-            @Override
-            public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
-                updatePlayerState(playWhenReady);
-            }
-        });
-        updatePlayerState(true);
-    }
-    public void hd_play(View view) {
-        HdStream(matchedUrl);
-        Toast.makeText(YoutubeDLP.this, "Playing HD", Toast.LENGTH_LONG).show();
-        playerView.setVisibility(View.VISIBLE);
-    }
     public void btnStartDownload(View view) {
         BtnStartDownload.setVisibility(View.GONE);
         BtnStopDownload.setVisibility(View.VISIBLE);
@@ -317,6 +323,7 @@ public class YoutubeDLP extends AppCompatActivity {
             Log.e(TAG, e.toString());
         }
     }
+
     private void updatePlayerState(boolean playWhenReady) {
         if (playWhenReady) {
             player.play();
@@ -334,7 +341,6 @@ public class YoutubeDLP extends AppCompatActivity {
             return false;
         }
     }
-
 
     private void startDownload(String url) {
         if (downloading) {
@@ -393,10 +399,12 @@ public class YoutubeDLP extends AppCompatActivity {
         if (!youtubeDLDir.exists()) youtubeDLDir.mkdir();
         return youtubeDLDir;
     }
+
     private void showStart() {
 
         dwLoading.setVisibility(View.VISIBLE);
     }
+
     public void onFullscreenClicked(View view) {
         int orientation = getResources().getConfiguration().orientation;
         if (orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -439,6 +447,7 @@ public class YoutubeDLP extends AppCompatActivity {
         PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp:AudioPlayback");
     }
+
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
@@ -484,7 +493,7 @@ public class YoutubeDLP extends AppCompatActivity {
             showSystemUI();
         }
     }
-    private int uiOptions;
+
     private void hideSystemUI() {
         View decorView = getWindow().getDecorView();
         uiOptions = decorView.getSystemUiVisibility();
@@ -496,6 +505,7 @@ public class YoutubeDLP extends AppCompatActivity {
         newUiOptions |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         decorView.setSystemUiVisibility(newUiOptions);
     }
+
     private void showSystemUI() {
         View decorView = getWindow().getDecorView();
         uiOptions = decorView.getSystemUiVisibility();
@@ -507,17 +517,7 @@ public class YoutubeDLP extends AppCompatActivity {
         newUiOptions &= ~View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         decorView.setSystemUiVisibility(newUiOptions);
     }
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (player != null) {
-            player.release();
-        }
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
 
-        }
-    }
     public void showplayer(View view) {
         if (playerView.getVisibility() == View.VISIBLE) {
             playerView.setVisibility(View.GONE);
@@ -529,6 +529,7 @@ public class YoutubeDLP extends AppCompatActivity {
             showPlayer.setVisibility(View.VISIBLE);
         }
     }
+
     public void hideplayer(View view) {
         if (playerView.getVisibility() == View.VISIBLE) {
             playerView.setVisibility(View.GONE);
@@ -538,6 +539,55 @@ public class YoutubeDLP extends AppCompatActivity {
             playerView.setVisibility(View.VISIBLE);
             hidePlayer.setVisibility(View.GONE);
             showPlayer.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void handleIncomingLink() {
+        Intent intent = getIntent();
+        if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+            Uri uri = intent.getData();
+            if (uri != null) {
+                String fullUrl = uri.toString();
+                playerView.setVisibility(View.VISIBLE);
+                startStream(fullUrl);
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (player != null) {
+            player.release();
+        }
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+
+        }
+    }
+
+    protected void mediasessions(){
+        mediaSession = new MediaSession(this, LOG_TAG);
+        mediaSession.setFlags(
+                MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
+                        MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        mediaSession.setMediaButtonReceiver(null);
+        stateBuilder = new PlaybackState.Builder()
+                .setActions(
+                        PlaybackState.ACTION_PLAY |
+                                PlaybackState.ACTION_PAUSE);
+        mediaSession.setPlaybackState(stateBuilder.build());
+        mediaSession.setCallback(new MySessionCallback());
+    }
+
+    private class MySessionCallback extends MediaSession.Callback {
+        @Override
+        public void onPlay() {
+            updatePlayerState(true);
+        }
+        @Override
+        public void onPause() {
+            updatePlayerState(false);
         }
     }
 

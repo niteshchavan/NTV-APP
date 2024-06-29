@@ -48,7 +48,7 @@ dependencies {
     implementation libs.library
     implementation libs.ffmpeg // Optional
     implementation libs.aria2c // Optional
-
+    implementation libs.media3.common
 
 
 }

@@ -22,11 +22,14 @@ import androidx.core.content.ContextCompat;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.source.MediaSource;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
@@ -114,6 +117,8 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
         newUiOptions &= ~View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         decorView.setSystemUiVisibility(newUiOptions);
     }
+
+    @OptIn(markerClass = UnstableApi.class)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -124,6 +129,17 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
 
         // Initialize player view
         playerView = findViewById(R.id.video_view);
+        DefaultLoadControl loadControl = new DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                        5000, // Min buffer duration (5 seconds)
+                        20000, // Max buffer duration (20 seconds)
+                        3000, // Buffer for playback (3 seconds)
+                        5000) // Buffer for playback after rebuffer (5 seconds)
+                .build();
+
+        player = new ExoPlayer.Builder(this)
+               // .setLoadControl(loadControl)
+                .build();
 
         // Initialize ExoPlayer
         player = new ExoPlayer.Builder(this).build();
@@ -157,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
     }
 
     private void fetchData() {
-        String url = "https://raw.githubusercontent.com/niteshchavan/NTV/main/ntv.json";
+        String url = "https://raw.githubusercontent.com/niteshchavan/NTV/main/private.json";
 
         RequestQueue queue = Volley.newRequestQueue(this);
         @SuppressLint("NotifyDataSetChanged") StringRequest request = new StringRequest(Request.Method.GET, url,
@@ -196,6 +212,11 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
             String url = channel.getUrl();
             //Toast.makeText(MainActivity.this, url, Toast.LENGTH_LONG).show();
             DataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
+//            DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory()
+//                    .setAllowCrossProtocolRedirects(true)
+//                    .setConnectTimeoutMs(8000)
+//                    .setReadTimeoutMs(8000);
+//                    //.setRetryPolicy(new DefaultRetryPolicy(3, 1000, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
             // Create a MediaItem with the given URL
             MediaItem mediaItem = new MediaItem.Builder()
