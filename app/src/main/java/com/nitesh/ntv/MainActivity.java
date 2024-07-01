@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
@@ -21,14 +22,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.source.MediaSource;
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import androidx.media3.exoplayer.LoadControl;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -57,7 +60,9 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
     private PlayerView playerView;
     private ExoPlayer player;
     private PowerManager.WakeLock wakeLock;
-
+    private MediaItem mediaItem;
+    private MediaSource mediaSource;
+    private String url;
     public void onFullscreenClicked(View view) {
         int orientation = getResources().getConfiguration().orientation;
         if (orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -123,33 +128,13 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         data = new ArrayList<>();
-
-        // Initialize player view
-        playerView = findViewById(R.id.video_view);
-        DefaultLoadControl loadControl = new DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                        5000, // Min buffer duration (5 seconds)
-                        20000, // Max buffer duration (20 seconds)
-                        3000, // Buffer for playback (3 seconds)
-                        5000) // Buffer for playback after rebuffer (5 seconds)
-                .build();
-
-        player = new ExoPlayer.Builder(this)
-               // .setLoadControl(loadControl)
-                .build();
-
-        // Initialize ExoPlayer
-        player = new ExoPlayer.Builder(this).build();
-        playerView.setPlayer(player);
-
         // Setup RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new MyAdapter(data, this, this); // Pass MainActivity as listener
         recyclerView.setAdapter(adapter);
-        // Add divider
         // Add custom divider
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recyclerView.getContext(),
                 new LinearLayoutManager(this).getOrientation());
@@ -157,6 +142,46 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
         recyclerView.addItemDecoration(dividerItemDecoration);
         // Fetch data from URL
         fetchData();
+        backpress();
+
+        playerView = findViewById(R.id.video_view);
+        DefaultLoadControl loadControl = new DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                        30 * 1000, // minBufferMs
+                        5 * 60 * 1000, // maxBufferMs
+                        30 * 1000, // bufferForPlaybackMs
+                        30 * 1000 // bufferForPlaybackAfterRebufferMs
+                )
+                .setTargetBufferBytes(-1) // Default value, not overriding
+                .setPrioritizeTimeOverSizeThresholds(false) // Default value, not overriding
+                .build();
+
+
+        player = new ExoPlayer.Builder(this)
+                .setLoadControl(loadControl)
+                .build();
+        playerView.setPlayer(player);
+
+        player.setPlayWhenReady(true);
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
+                    Log.d(TAG, "Playback state changed: " + playbackState + ". Restarting player.");
+                    restartPlayer();
+                }
+            }
+
+            @Override
+            public void onPlayerError(PlaybackException error) {
+                Log.e(TAG, "Playback error: " + error.getMessage());
+                restartPlayer();
+            }
+        });
+    }
+
+
+    private void backpress(){
 
         // Set up back button handling
         OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
@@ -170,6 +195,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
             }
         };
         getOnBackPressedDispatcher().addCallback(this, callback);
+
     }
 
     private void fetchData() {
@@ -208,58 +234,28 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
     @OptIn(markerClass = UnstableApi.class)
     @Override
     public void onItemClick(Channel channel) {
-        try {
-            String url = channel.getUrl();
-            //Toast.makeText(MainActivity.this, url, Toast.LENGTH_LONG).show();
-            DataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
-//            DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory()
-//                    .setAllowCrossProtocolRedirects(true)
-//                    .setConnectTimeoutMs(8000)
-//                    .setReadTimeoutMs(8000);
-//                    //.setRetryPolicy(new DefaultRetryPolicy(3, 1000, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        player.stop();
+        url = channel.getUrl();
+        DataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
+        mediaItem = new MediaItem.Builder()
+                .setUri(url)
+                .build();
+        mediaSource = new DefaultMediaSourceFactory(dataSourceFactory)
+                .createMediaSource(mediaItem);
+        player.setMediaSource(mediaSource);
+        player.prepare();
 
-            // Create a MediaItem with the given URL
-            MediaItem mediaItem = new MediaItem.Builder()
-                    .setUri(url)
-                    .build();
-
-            // Use DefaultMediaSourceFactory to create a MediaSource
-            MediaSource mediaSource = new DefaultMediaSourceFactory(dataSourceFactory)
-                    .createMediaSource(mediaItem);
-
+    }
+    @OptIn(markerClass = UnstableApi.class)
+    private void restartPlayer() {
+        if (player != null) {
             player.setMediaSource(mediaSource);
             player.prepare();
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            // Acquire wake lock before starting playback
-            if (wakeLock != null) {
-                wakeLock.acquire(10*60*1000L /*10 minutes*/);
-
-
-            }
             player.setPlayWhenReady(true);
-
-            player.addListener(new Player.Listener() {
-                @Override
-                public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                    if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
-                        if (wakeLock != null && wakeLock.isHeld()) {
-                            wakeLock.release();
-
-                        }
-                    }
-                }
-                @Override
-                public void onPlayerError(PlaybackException error) {
-                    Log.e(TAG, "Player Error: " + error.getMessage());
-                    Toast.makeText(MainActivity.this, "Error playing video: " + error.getMessage(), Toast.LENGTH_LONG).show();
-                }
-
-            });
-        } catch (Exception e) {
-            Log.e(TAG, "Error initializing ExoPlayer: ", e);
-            Toast.makeText(this, "Error playing video", Toast.LENGTH_SHORT).show();
         }
     }
+
+
     private void releaseWakeLock() {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
@@ -267,12 +263,12 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.OnItemC
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        releaseWakeLock();
-
-    }
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        releaseWakeLock();
+//
+//    }
 
     @Override
     protected void onDestroy() {
